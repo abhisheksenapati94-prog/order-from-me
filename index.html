@@ -1,0 +1,86 @@
+<!doctype html><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Order from Me</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
+  .wrap{max-width:740px;margin:auto;padding:20px}
+  h1{font-size:22px;margin:14px 0} .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.07)}
+  .row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #e9eef5}
+  .row:last-child{border-bottom:0} .price{font-weight:700} .qty button{border:0;border-radius:10px;padding:6px 10px;background:#eef2f7}
+  .total{display:flex;justify-content:space-between;font-weight:800;font-size:18px;margin-top:12px}
+  button.primary{background:#0ea5e9;color:#fff;border:0;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer}
+  input,select{width:100%;padding:10px;border:1px solid #e5e9f3;border-radius:12px}
+  .grid{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+</style>
+<div class=wrap>
+  <h1>🍽️ Order from Me</h1>
+  <div class=card id=menu></div>
+
+  <div class=card style="margin-top:12px">
+    <div class=grid>
+      <div><input id=name placeholder="Your name" required></div>
+      <div>
+        <select id=type>
+          <option value=pickup>Pickup</option>
+          <option value=delivery>Delivery</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:8px"><input id=addr placeholder="Delivery address (if delivery)"></div>
+    <div class=total><span>Total</span><span id=total>$0.00</span></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class=primary id=send>Send Order (WhatsApp)</button>
+      <button id=clear>Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PHONE="+16033597794"; // <-- your phone in E.164 (+1...)
+  const MENU=[ // edit your items here
+    {id:"a",name:"Seafood Sambhar",price:bighug},
+    {id:"b",name:"Instant Ramen",price:hug},
+    {id:"c",name:"Ramen Broth",price:handshake}
+  ];
+  let cart={}; const $=(s)=>document.querySelector(s); const fmt=(n)=>"$"+n.toFixed(2);
+
+  function renderMenu(){
+    const m=$("#menu"); m.innerHTML="<h3 style='margin:0 0 6px'>Menu</h3>";
+    MENU.forEach(it=>{
+      const r=document.createElement("div"); r.className="row";
+      r.innerHTML=`<div><div>${it.name}</div><div class=price>${fmt(it.price)}</div></div>
+                   <div class=qty>
+                     <button onclick="chg('${it.id}',-1)">−</button>
+                     <span id="q_${it.id}" style="display:inline-block;width:24px;text-align:center">0</span>
+                     <button onclick="chg('${it.id}',1)">＋</button>
+                   </div>`;
+      m.appendChild(r);
+    });
+  }
+
+  function chg(id,d){ cart[id]=(cart[id]||0)+d; if(cart[id]<0) cart[id]=0; $("#q_"+id).textContent=cart[id]; tot(); }
+
+  function tot(){
+    let t=0; for(const [id,q] of Object.entries(cart)){ const it=MENU.find(x=>x.id===id); t+= (it?.price||0)*q; }
+    $("#total").textContent=fmt(t); return t;
+  }
+
+  function buildMessage(){
+    const name=($("#name").value||"").trim();
+    const type=$("#type").value;
+    const addr=($("#addr").value||"").trim();
+    const lines=Object.entries(cart).filter(([,q])=>q>0).map(([id,q])=>{
+      const it=MENU.find(x=>x.id===id); return `• ${it.name} ×${q}`; }).join("%0A");
+    let msg=`New order from ${encodeURIComponent(name||"Friend")}%0A%0A${lines}%0A%0ATotal: ${encodeURIComponent($("#total").textContent)}%0AType: ${type.toUpperCase()}`;
+
+    return msg;
+  }
+
+  $("#send").onclick=()=>{
+    if(tot()<=0) return alert("Add something first.");
+    const url=`https://wa.me/${PHONE.replace(/[^\d+]/g,"")}?text=${buildMessage()}`;
+    const url = \sms:${PHONE}?&body=${buildMessage()}`;`=url;
+  };
+  $("#clear").onclick=()=>{ cart={}; document.querySelectorAll("[id^=q_]").forEach(x=>x.textContent="0"); tot(); };
+
+  renderMenu(); tot();
+</script>
